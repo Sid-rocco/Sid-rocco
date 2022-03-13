@@ -1,0 +1,135 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Mar 27 10:46:38 2021
+@author: Lenovo
+"""
+import math
+import numpy as np
+#%%preprocessing
+text = open(" add location ")
+lines = text.read().split('\n')
+n_spam = 0
+n_ham = 0
+hams = []
+spams =[]
+for line in lines:
+    words = line.split(',')
+    if words[0] == 'spam':
+       n_spam = n_spam +1
+       spams.append(words[1])
+    else:
+       n_ham = n_ham +1
+       hams.append(words[1])
+#%%for spams
+spam_vocabulary =[]
+spam_count_words ={}
+for spam in spams:
+    words = spam.split(' ')
+    for word in words:
+        if word.lower() not in spam_vocabulary:
+            spam_vocabulary.append(word.lower())
+        if word.lower() not in spam_count_words:
+            spam_count_words[word.lower()] = 1
+        else:
+            spam_count_words[word.lower()] +=1
+spam_words_count = len(spam_vocabulary)
+
+#%%for hams
+ham_vocabulary =[]
+ham_count_words ={}
+for ham in hams:
+    words = ham.split(' ')
+    for word in words:
+        if word.lower() not in ham_vocabulary:
+            ham_vocabulary.append(word.lower())
+        if word.lower() not in ham_count_words:
+            ham_count_words[word.lower()] = 1
+        else:
+            ham_count_words[word.lower()] +=1
+ham_words_count = len(ham_vocabulary)
+
+vocabulary = spam_vocabulary + ham_vocabulary
+total_words = len(vocabulary)
+
+ham_prob = n_ham/(n_ham + n_spam)
+spam_prob = 1 - ham_prob    
+
+
+spam_samples = np.zeros((n_spam,total_words))
+for i in range(n_spam):
+    words = spams[i].split(' ')
+    for j in range(len(words)):
+        if words[j].lower() == vocabulary[j] :
+           spam_samples[i,j] += 1
+ham_samples = np.zeros((n_ham,total_words))
+for i in range(n_ham):
+    words = hams[i].split(' ')
+    for j in range(len(words)):
+        if words[j].lower() == vocabulary[j] :
+           ham_samples[i,j] += 1              
+
+mu_spam = spam_samples.mean(axis=0) #means of C5
+mu_ham = ham_samples.mean(axis=0) # and C6
+
+'''b = 0
+for k in range(total_words):
+    for i in range(n_spam):
+        b = b + ((spam_samples[i] - mu_spam)[n_spam-k])**2
+A = (1/n_spam)*b
+c =0   
+for k in range(total_words):
+    for i in range(n_ham):
+        c = c + ((ham_samples[i] - mu_ham)[n_ham-k])**2        
+C = (1/n_ham)*c  ''' 
+ 
+
+A =  0.20615086864158205
+C = 0.0452807223165724
+
+def g(x,m1,c1,pr1,m2,c2,pr2):
+    A = np.log(pr1)
+    B = 0.5*(c1*(x-m1).dot(x-m1))
+    C = 0.5*(np.log(c1))
+    g1 = A-B-C
+    D = np.log(pr2)
+    E = 0.5*(c2*(x-m2).dot(x-m2))
+    F = 0.5*(np.log(c2))
+    g2 = D-E-F
+    return g1-g2
+
+test = open('Add location')
+test_lines = test.read().split('\n')
+nt_spam = 0
+nt_ham = 0
+t_cls =[]
+testing =[]
+for line in test_lines:
+    words = line.split(',')
+    if words[0] == 'spam':
+       nt_spam = nt_spam +1
+       t_cls.append(1)
+    else:
+       nt_ham = nt_ham +1
+       t_cls.append(0)
+    testing.append(words[1])
+
+vocabulary = spam_vocabulary + ham_vocabulary
+total_words = len(vocabulary)
+   
+
+
+test_samples = np.zeros((nt_spam + nt_ham,total_words))
+for i in range(nt_spam + nt_ham):
+    words = testing[i].split(' ')
+    for j in range(len(words)):
+        if words[j].lower() == vocabulary[j]:
+           test_samples[i,j] += 1
+           
+e_cls= []
+for i in range(len(testing)):
+    if g(test_samples[i],mu_spam,A,spam_prob,mu_ham,C,ham_prob) > 0:
+        e_cls.append(1)
+    else:
+        e_cls.append(0)
+
+ans = g(test_samples[456],mu_spam,A,spam_prob,mu_ham,C,ham_prob)
